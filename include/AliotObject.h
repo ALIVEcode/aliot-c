@@ -33,8 +33,6 @@ class AliotObject {
 
         // Temporary configuration system
         void setup_config(String auth_token, String object_id, const char* ssid, const char* password);
-        void setup_wifi();
-        void setup_websocket();
         void loop_websocket();
 
         // TODO: Make this more generic
@@ -48,6 +46,8 @@ class AliotObject {
         AliotWebSocketConfig aliotws_config;
         WebSocketsClient aliotws_client;
 
+        void setup_wifi();
+        void setup_websocket();
         WebSocketsClient::WebSocketClientEvent begin_event_listener();
 
 };
