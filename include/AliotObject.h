@@ -20,15 +20,11 @@ typedef struct {
     String auth_token;
     String object_id;
 
-} AWSConfig_t;
+} AliotWebSocketConfig;
 
 
 class AliotObject {
     public:
-        WebSocketsClient m_AWSClient; // Aliot WebSocket Client
-        AWSConfig_t m_AWSConfig; // Aliot WebSocket Config
-
-        
         AliotObject();
         ~AliotObject();
 
@@ -39,6 +35,7 @@ class AliotObject {
         void setup_config(String auth_token, String object_id, const char* ssid, const char* password);
         void setup_wifi();
         void setup_websocket();
+        void loop_websocket();
 
         // TODO: Make this more generic
         void send_event(const char* event, const char* data);
@@ -48,6 +45,9 @@ class AliotObject {
         void on_close();
 
     private:
+        AliotWebSocketConfig aliotws_config;
+        WebSocketsClient aliotws_client;
+
         WebSocketsClient::WebSocketClientEvent begin_event_listener();
 
 };

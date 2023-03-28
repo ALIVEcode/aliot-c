@@ -17,15 +17,15 @@ void AliotObject::run() {
 }
 
 void AliotObject::setup_config(String auth_token, String object_id, const char* ssid, const char* password) {
-    this->m_AWSConfig.auth_token = auth_token;
-    this->m_AWSConfig.object_id = object_id;
-    this->m_AWSConfig.ssid = ssid;
-    this->m_AWSConfig.password = password;
+    aliotws_config.auth_token = auth_token;
+    aliotws_config.object_id = object_id;
+    aliotws_config.ssid = ssid;
+    aliotws_config.password = password;
 }
 
 void AliotObject::setup_wifi() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(this->m_AWSConfig.ssid, this->m_AWSConfig.password);
+    WiFi.begin(aliotws_config.ssid, aliotws_config.password);
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
@@ -39,7 +39,7 @@ void AliotObject::setup_wifi() {
 
 // TODO: Switch to secure connection 
 void AliotObject::setup_websocket() {
-    this->m_AWSClient.begin(this->m_AWSConfig.host, this->m_AWSConfig.port, this->m_AWSConfig.path);
+    this->m_AWSClient.begin(aliotws_config.host, aliotws_config.port, aliotws_config.path);
     this->m_AWSClient.onEvent(this->begin_event_listener());
 }
 
@@ -49,8 +49,8 @@ void AliotObject::on_open() {
 
     doc["event"] = "connect_object";
 
-    doc["data"]["token"] = this->m_AWSConfig.auth_token;
-    doc["data"]["id"] = this->m_AWSConfig.object_id;
+    doc["data"]["token"] = aliotws_config.auth_token;
+    doc["data"]["id"] = aliotws_config.object_id;
 
     String output;
     serializeJson(doc, output);
@@ -96,6 +96,7 @@ void AliotObject::send_event(const char* event, const char* data) {
     this->m_AWSClient.sendTXT(output.c_str());
 }
 
+// Start listening for events through library events, then configure aliot events with on_message
 WebSocketsClient::WebSocketClientEvent AliotObject::begin_event_listener() {
     // lil hack to use method as callback function
     return [this](WStype_t type, uint8_t * payload, size_t length) {
