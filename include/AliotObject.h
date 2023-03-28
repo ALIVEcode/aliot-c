@@ -43,8 +43,8 @@ class AliotObject {
         void on_close();
 
     private:
-        AliotWebSocketConfig aliotws_config;
-        WebSocketsClient aliotws_client;
+        WebSocketsClient m_client;
+        AliotWebSocketConfig m_config;
 
         void setup_wifi();
         void setup_websocket();
