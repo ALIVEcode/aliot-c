@@ -3,12 +3,14 @@
 
 AliotObject::AliotObject() {
     Serial.begin(115200);
-    this->m_AWSClient = WebSocketsClient();
+    this->m_client = WebSocketsClient();
 }
+
+
 
 // Dont call this yet, causes corrupted head error
 AliotObject::~AliotObject() {
-    this->m_AWSClient.disconnect();
+    this->m_client.disconnect();
 }
 
 void AliotObject::run() {
@@ -17,15 +19,15 @@ void AliotObject::run() {
 }
 
 void AliotObject::setup_config(String auth_token, String object_id, const char* ssid, const char* password) {
-    aliotws_config.auth_token = auth_token;
-    aliotws_config.object_id = object_id;
-    aliotws_config.ssid = ssid;
-    aliotws_config.password = password;
+    this->m_config.auth_token = auth_token;
+    this->m_config.object_id = object_id;
+    this->m_config.ssid = ssid;
+    this->m_config.password = password;
 }
 
 void AliotObject::setup_wifi() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(aliotws_config.ssid, aliotws_config.password);
+    WiFi.begin(this->m_config.ssid, this->m_config.password);
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
@@ -39,25 +41,33 @@ void AliotObject::setup_wifi() {
 
 // TODO: Switch to secure connection 
 void AliotObject::setup_websocket() {
-    this->m_AWSClient.begin(aliotws_config.host, aliotws_config.port, aliotws_config.path);
-    this->m_AWSClient.onEvent(this->begin_event_listener());
+    this->m_client.begin(this->m_config.host, this->m_config.port, this->m_config.path);
+    this->m_client.onEvent(this->begin_event_listener());
+}
+
+void AliotObject::loop_websocket() {
+    this->m_client.loop();
 }
 
 void AliotObject::on_open() {
+
     Serial.println("[AWSClient] Connected to AWS");
     StaticJsonDocument<500> doc;
 
-    doc["event"] = "connect_object";
+    doc["event"] = AliotEvents::EVT_CONNECT_OBJECT;
+    JsonObject data = doc.createNestedObject("data");
 
-    doc["data"]["token"] = aliotws_config.auth_token;
-    doc["data"]["id"] = aliotws_config.object_id;
+
+    data["token"] = this->m_config.auth_token;
+    data["id"] = this->m_config.object_id;
 
     String output;
     serializeJson(doc, output);
 
     Serial.println(output.c_str());
 
-    this->m_AWSClient.sendTXT(output.c_str());
+    this->m_client.sendTXT(output.c_str());
+    this->update_doc("\"/doc/test/\":\"test\"");
 }
 
 void AliotObject::on_close() {
@@ -75,25 +85,31 @@ void AliotObject::on_message(uint8_t * payload, size_t length) {
 
     String event = doc["event"];
     String data = doc["data"];
-
     // Testing ping pong
-    if (event.equals("ping")) {
-        this->send_event("pong", data.c_str());
+    if (event.equals(AliotEvents::EVT_PING)) {
+        this->send_event(AliotEvents::EVT_PONG, "null");
     }
+
+
+
 }
 
-void AliotObject::send_event(const char* event, const char* data) {
+void AliotObject::update_doc(const char* data) {
+    this->send_event(AliotEvents::EVT_UPDATE_DOC, data);
+}
+
+void AliotObject::send_event(AliotEvent_t event, const char* data) {
     StaticJsonDocument<200> doc;
+
+    String output;
 
     doc["event"] = event;
     doc["data"] = data;
-
-    String output;
     serializeJson(doc, output);
 
     Serial.println(output.c_str());
 
-    this->m_AWSClient.sendTXT(output.c_str());
+    this->m_client.sendTXT(output.c_str());
 }
 
 // Start listening for events through library events, then configure aliot events with on_message
