@@ -3,12 +3,12 @@
 
 AliotObject::AliotObject() {
     Serial.begin(115200);
-    this->m_client = WebSocketsClient();
+    this->mClient = WebSocketsClient();
 }
 
 // Dont call this yet, causes corrupted head error
 AliotObject::~AliotObject() {
-    this->m_client.disconnect();
+    this->mClient.disconnect();
 }
 
 void AliotObject::run() {
@@ -17,15 +17,15 @@ void AliotObject::run() {
 }
 
 void AliotObject::setupConfig(String authToken, String objectId, const char* ssid, const char* password) {
-    this->m_config.authToken = authToken;
-    this->m_config.objectId = objectId;
-    this->m_config.ssid = ssid;
-    this->m_config.password = password;
+    this->mConfig.authToken = authToken;
+    this->mConfig.objectId = objectId;
+    this->mConfig.ssid = ssid;
+    this->mConfig.password = password;
 }
 
 void AliotObject::setupWiFi() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(this->m_config.ssid, this->m_config.password);
+    WiFi.begin(this->mConfig.ssid, this->mConfig.password);
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
@@ -42,12 +42,12 @@ void AliotObject::setupWiFi() {
 
 // TODO: Switch to secure connection 
 void AliotObject::setupWebSocket() {
-    this->m_client.begin(this->m_config.host, this->m_config.port, this->m_config.path);
-    this->m_client.onEvent(this->beginEventListener());
+    this->mClient.begin(this->mConfig.host, this->mConfig.port, this->mConfig.path);
+    this->mClient.onEvent(this->beginEventListener());
 }
 
-void AliotObject::loopWebSocket() {
-    this->m_client.loop();
+void AliotObject::loop() {
+    this->mClient.loop();
 }
 
 
@@ -59,15 +59,15 @@ void AliotObject::onOpen() {
     doc["event"] = AliotEvents::EVT_CONNECT_OBJECT;
     JsonObject data = doc.createNestedObject("data");
 
-    data["token"] = this->m_config.authToken;
-    data["id"] = this->m_config.objectId;
+    data["token"] = this->mConfig.authToken;
+    data["id"] = this->mConfig.objectId;
 
     String output;
     serializeJson(doc, output);
 
     Serial.println(output.c_str());
 
-    this->m_client.sendTXT(output.c_str());
+    this->mClient.sendTXT(output.c_str());
 }
 
 void AliotObject::onClose() {
@@ -93,7 +93,7 @@ void AliotObject::onMessage(uint8_t * payload, size_t length) {
     
     else if (event.equals(AliotEvents::EVT_CONNECT_SUCCESS)) {
  
-        this->updateDoc({"/doc/test", "Hello World"});
+        this->updateDoc({"/doc/message", "Hello World"});
         
         
     }
@@ -106,7 +106,7 @@ void AliotObject::sendEvent(const AliotEvent_t& event, const char* data) {
     doc["data"] = data;
     serializeJson(doc, output);
     Serial.println(output.c_str());
-    this->m_client.sendTXT(output.c_str());
+    this->mClient.sendTXT(output.c_str());
 }
 
 void AliotObject::sendEvent(const AliotEvent_t& event, JsonObject& nestedData) {
@@ -120,7 +120,7 @@ void AliotObject::sendEvent(const AliotEvent_t& event, JsonObject& nestedData) {
     serializeJson(doc, output);
     Serial.println(output.c_str());
 
-    this->m_client.sendTXT(output.c_str());
+    this->mClient.sendTXT(output.c_str());
 }
 
 void AliotObject::updateDoc(std::pair<const char*, const char*> dict) {
