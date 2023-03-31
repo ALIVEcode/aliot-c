@@ -89,7 +89,7 @@ void AliotObject::onMessage(uint8_t * payload, size_t length) {
     }
 
     else if (!strcmp(event, AliotEvents::EVT_CONNECT_SUCCESS)) {
-        
+
     }
 }
 
@@ -117,36 +117,14 @@ void AliotObject::sendEvent(AliotEvent_t event, JsonObject& nestedData) {
     this->m_client.sendTXT(output.c_str());
 }
 
-void AliotObject::updateDoc(const char* key, const char* value) {
+void AliotObject::updateDoc(std::pair<const char*, const char*> dict) {
     StaticJsonDocument<300> doc;
     JsonObject temp = doc.createNestedObject("temp");
     temp.createNestedObject("fields");
-    temp["fields"][key] = value;
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-}
-void AliotObject::updateDoc(const char* key, int value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
+    temp["fields"][dict.first] = dict.second;
     this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
 }
 
-void AliotObject::updateDoc(const char* key, double value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-}
-
-void AliotObject::updateDoc(const char* key, bool value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-}
 WebSocketsClient::WebSocketClientEvent AliotObject::beginEventListener() {
     // lil hack to use method as callback function
     return [this](WStype_t type, uint8_t * payload, size_t length) {

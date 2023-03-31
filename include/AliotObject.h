@@ -51,15 +51,7 @@ class AliotObject {
 
 
         // Update document with overloaded params
-        void updateDoc(const char* key, const char* value);
-        void updateDoc(const char* key, int value);
-        void updateDoc(const char* key, double value);
-        void updateDoc(const char* key, bool value);
-
-    
-
-
-        void connectObject();
+        void updateDoc(std::pair<const char*, const char*> data);
 
         void onMessage(uint8_t * payload, size_t length);
         void onError(const char* data);
