@@ -1,6 +1,7 @@
 #include "AliotObject.h"
 
 
+
 AliotObject::AliotObject() {
     Serial.begin(115200);
     this->mClient = WebSocketsClient();
@@ -83,13 +84,14 @@ void AliotObject::onMessage(uint8_t * payload, size_t length) {
     const char* event = doc["event"];
     const char* data = doc["data"];
 
-    // Testing ping pong
+    // Remember : strcmp returns 0 if strings are equal
+
     if (!strcmp(event, AliotEvents::EVT_PING)) {
         this->sendEvent(AliotEvents::EVT_PONG, "null");
     }
 
     else if (!strcmp(event, AliotEvents::EVT_CONNECT_SUCCESS)) {
-
+        this->updateDoc(createDoc<const char*>("/doc/test", "hello world!"));
     }
 }
 
@@ -107,7 +109,6 @@ void AliotObject::sendEvent(AliotEvent_t event, JsonObject& nestedData) {
     StaticJsonDocument<200> doc;
     String output;
     doc["event"] = event;
-
     doc.createNestedObject("data");
     doc["data"] = nestedData;
 
@@ -117,36 +118,19 @@ void AliotObject::sendEvent(AliotEvent_t event, JsonObject& nestedData) {
     this->mClient.sendTXT(output.c_str());
 }
 
-void AliotObject::updateDoc(const char* key, const char* value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-}
-void AliotObject::updateDoc(const char* key, int value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
+void AliotObject::updateDoc(AliotDoc_t doc) {
+    // TODO: Clean this up. 
+    StaticJsonDocument<300> d1;
+    StaticJsonDocument<300> d2;
+    deserializeJson(d2, doc);
+
+    // Temporary "container" to be able to send nested json objects
+    JsonObject temp = d1.createNestedObject("temp");
+    d1["temp"] = d2;
+
     this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
 }
 
-void AliotObject::updateDoc(const char* key, double value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-}
-
-void AliotObject::updateDoc(const char* key, bool value) {
-    StaticJsonDocument<300> doc;
-    JsonObject temp = doc.createNestedObject("temp");
-    temp.createNestedObject("fields");
-    temp["fields"][key] = value;
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-}
 WebSocketsClient::WebSocketClientEvent AliotObject::beginEventListener() {
     // lil hack to use method as callback function
     return [this](WStype_t type, uint8_t * payload, size_t length) {
