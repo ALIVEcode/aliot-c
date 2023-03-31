@@ -16,7 +16,7 @@ void AliotObject::run() {
     this->setupWebSocket();    
 }
 
-void AliotObject::setupConfig(String authToken, String objectId, const char* ssid, const char* password) {
+void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password) {
     this->m_config.authToken = authToken;
     this->m_config.objectId = objectId;
     this->m_config.ssid = ssid;
@@ -35,9 +35,6 @@ void AliotObject::setupWiFi() {
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
-
-    const char* x = "connect_object";
-
 }
 
 // TODO: Switch to secure connection 
@@ -83,23 +80,20 @@ void AliotObject::onMessage(uint8_t * payload, size_t length) {
     StaticJsonDocument<200> doc;
     deserializeJson(doc, message);
 
-    String event = doc["event"];
-    String data = doc["data"];
+    const char* event = doc["event"];
+    const char* data = doc["data"];
+
     // Testing ping pong
-    if (event.equals(AliotEvents::EVT_PING)) {
+    if (!strcmp(event, AliotEvents::EVT_PING)) {
         this->sendEvent(AliotEvents::EVT_PONG, "null");
     }
 
-    
-    else if (event.equals(AliotEvents::EVT_CONNECT_SUCCESS)) {
- 
-        this->updateDoc({"/doc/test", "Hello World"});
-        
+    else if (!strcmp(event, AliotEvents::EVT_CONNECT_SUCCESS)) {
         
     }
 }
 
-void AliotObject::sendEvent(const AliotEvent_t& event, const char* data) {
+void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
     StaticJsonDocument<200> doc;
     String output;
     doc["event"] = event;
@@ -109,7 +103,7 @@ void AliotObject::sendEvent(const AliotEvent_t& event, const char* data) {
     this->m_client.sendTXT(output.c_str());
 }
 
-void AliotObject::sendEvent(const AliotEvent_t& event, JsonObject& nestedData) {
+void AliotObject::sendEvent(AliotEvent_t event, JsonObject& nestedData) {
     StaticJsonDocument<200> doc;
     String output;
     doc["event"] = event;
@@ -123,20 +117,44 @@ void AliotObject::sendEvent(const AliotEvent_t& event, JsonObject& nestedData) {
     this->m_client.sendTXT(output.c_str());
 }
 
-void AliotObject::updateDoc(std::pair<const char*, const char*> dict) {
+void AliotObject::updateDoc(const char* key, const char* value) {
     StaticJsonDocument<300> doc;
     JsonObject temp = doc.createNestedObject("temp");
     temp.createNestedObject("fields");
-    temp["fields"][dict.first] = dict.second;
+    temp["fields"][key] = value;
     this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
-
+}
+void AliotObject::updateDoc(const char* key, int value) {
+    StaticJsonDocument<300> doc;
+    JsonObject temp = doc.createNestedObject("temp");
+    temp.createNestedObject("fields");
+    temp["fields"][key] = value;
+    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
 }
 
+void AliotObject::updateDoc(const char* key, double value) {
+    StaticJsonDocument<300> doc;
+    JsonObject temp = doc.createNestedObject("temp");
+    temp.createNestedObject("fields");
+    temp["fields"][key] = value;
+    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
+}
+
+void AliotObject::updateDoc(const char* key, bool value) {
+    StaticJsonDocument<300> doc;
+    JsonObject temp = doc.createNestedObject("temp");
+    temp.createNestedObject("fields");
+    temp["fields"][key] = value;
+    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, temp);
+}
 WebSocketsClient::WebSocketClientEvent AliotObject::beginEventListener() {
     // lil hack to use method as callback function
     return [this](WStype_t type, uint8_t * payload, size_t length) {
 
         switch(type) {
+
+            case WStype_ERROR:
+                break;
 
             case WStype_DISCONNECTED:
                 this->onClose();
@@ -150,17 +168,19 @@ WebSocketsClient::WebSocketClientEvent AliotObject::beginEventListener() {
                 this->onMessage(payload, length);
                 break;
             
-            case WStype_ERROR:
-                break;
-
             /*
             We won't use other types of events from the webSocketsClient library. Receiving ping pongs 
             through WSType_PING and WSType_PONG will cause a buffer overflow error. Same thing
             for sendPing(). All events have to be received as WStype_TEXT and sent with sendTXT().
             */
 
-
-
+            case WStype_BIN: break;
+            case WStype_FRAGMENT_TEXT_START: break;
+            case WStype_FRAGMENT_BIN_START: break;
+            case WStype_FRAGMENT: break;
+            case WStype_FRAGMENT_FIN: break;
+            case WStype_PING: break;
+            case WStype_PONG: break;
         }
     };
 }
