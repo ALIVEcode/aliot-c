@@ -51,7 +51,12 @@ class AliotObject {
 
 
         // Update document with overloaded params
-        void updateDoc(std::pair<const char*, const char*> data);
+        // TODO: Implement templates instead. Same exact code for each type,
+        // don't need method overload
+        void updateDoc(const char* key, const char* value);
+        void updateDoc(const char* key, int value);
+        void updateDoc(const char* key, double value);
+        void updateDoc(const char* key, bool value);
 
         void onMessage(uint8_t * payload, size_t length);
         void onError(const char* data);
