@@ -43,7 +43,7 @@ class AliotObject {
 
         // Temporary configuration system
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password);
-        void loopWebSocket();
+        void loop();
 
         // TODO: Make this more generic
         void sendEvent(AliotEvent_t event, const char* data);
@@ -65,8 +65,8 @@ class AliotObject {
 
 
     private:
-        WebSocketsClient m_client;
-        AliotWebSocketConfig m_config;
+        WebSocketsClient mClient;
+        AliotWebSocketConfig mConfig;
         
         void setupWiFi();
         void setupWebSocket();

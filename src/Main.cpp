@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include "AliotObject.h"
 
-const char* ssid ="";
-const char* password ="";
+const char* ssid = "";
+const char* password = "";
 
-// Aliot credentials
 const char* auth_token = "";
 const char* object_id = "";
+
 
 // Create AliotObject instance
 AliotObject AWSClient = AliotObject();
@@ -21,5 +21,5 @@ void setup() {
 }
 
 void loop() {
- AWSClient.loopWebSocket();
+ AWSClient.loop();
 }
