@@ -11,7 +11,6 @@ const char* object_id = "";
 // Create AliotObject instance
 AliotObject AWSClient = AliotObject();
 
-
 void setup() {
   Serial.begin(115200);
   pinMode(0, INPUT_PULLUP);
