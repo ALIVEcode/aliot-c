@@ -151,13 +151,15 @@ class AliotObject {
         bool _connected;
         bool _validConfig;
         bool _debugMode; 
+
+        int _pingCounter;
         
         // Setup connection
         void setupWiFi();
         void setupWebSocket();
 
         // Start listening for events through library events, then configure aliot events with on_message
-        WebSocketsClient::WebSocketClientEvent beginEventListener();
+        void beginEventListener();
 
     public:
         AliotObject();

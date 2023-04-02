@@ -7,6 +7,8 @@ AliotObject::AliotObject() {
     this->_debugMode = false;
     this->_connected = false;
     this->_validConfig = false;
+
+    this->_pingCounter = 0;
 }
 
 // Dont call this yet, causes corrupted head error
@@ -54,7 +56,7 @@ void AliotObject::setupWiFi() {
 // TODO: Switch to secure connection 
 void AliotObject::setupWebSocket() {
     this->_client.begin(this->_config.host, this->_config.port, this->_config.path);
-    this->_client.onEvent(this->beginEventListener());
+    this->beginEventListener();
 }
 
 void AliotObject::loop() {
@@ -165,6 +167,8 @@ void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
 
     if (!strcmp(event, AliotEvents::EVT_PING)) {
         this->sendEvent(AliotEvents::EVT_PONG, "");
+        this->_pingCounter++;
+        this->updateDoc(createDict<int>({Pair("/doc/ping", this->_pingCounter)}));
     }
 
     else if (!strcmp(event, AliotEvents::EVT_ERROR)) {
@@ -176,40 +180,35 @@ void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
     }
 }
 
-WebSocketsClient::WebSocketClientEvent AliotObject::beginEventListener() {
-    // lil hack to use method as callback function
-    return [this](WStype_t type, uint8_t * payload, size_t length) {
+void AliotObject::beginEventListener() {
+    // Set lambda function as WebSocketClientEvent callback
+    this->_client.onEvent(
+        [this](WStype_t type, uint8_t * payload, size_t length) {
+            switch(type) {
+                case WStype_DISCONNECTED: 
+                    this->onClose(); break;
 
-        switch(type) {
+                case WStype_CONNECTED: 
+                    this->onOpen(); break;
 
-            case WStype_ERROR:
-                break;
-
-            case WStype_DISCONNECTED:
-                this->onClose();
-                break;
-
-            case WStype_CONNECTED:
-                this->onOpen();
-                break;
-            
-            case WStype_TEXT:
-                this->onMessage(payload, length);
-                break;
-            
-            /*
-            We won't use other types of events from the webSocketsClient library. Receiving ping pongs 
-            through WSType_PING and WSType_PONG will cause a buffer overflow error. Same thing
-            for sendPing(). All events have to be received as WStype_TEXT and sent with sendTXT().
-            */
-
-            case WStype_BIN: break;
-            case WStype_FRAGMENT_TEXT_START: break;
-            case WStype_FRAGMENT_BIN_START: break;
-            case WStype_FRAGMENT: break;
-            case WStype_FRAGMENT_FIN: break;
-            case WStype_PING: break;
-            case WStype_PONG: break;
+                case WStype_TEXT: 
+                    this->onMessage(payload, length); break;
+                
+                /*
+                We won't use other types of events from the webSocketsClient library. Receiving ping pongs 
+                through WSType_PING and WSType_PONG will cause a buffer overflow error. Same thing
+                for sendPing(). All events have to be received as WStype_TEXT and sent with sendTXT().
+                */
+               
+                case WStype_ERROR: break; // Not sure if we need this one
+                case WStype_BIN: break;
+                case WStype_FRAGMENT_TEXT_START: break;
+                case WStype_FRAGMENT_BIN_START: break;
+                case WStype_FRAGMENT: break;
+                case WStype_FRAGMENT_FIN: break;
+                case WStype_PING: break;
+                case WStype_PONG: break;
+            }
         }
-    };
+    );
 }
