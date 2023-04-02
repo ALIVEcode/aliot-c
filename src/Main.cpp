@@ -12,15 +12,16 @@ const char* objectId = "";
 AliotObject aliotObj = AliotObject();
 
 void setup() {
-  Serial.begin(115200);
-  
-  aliotObj.setDebugMode(true);
+    // Comment out to disable printing all payload to Serial monitor
+    aliotObj.setDebugMode(true);
 
-  aliotObj.setupConfig(authToken, objectId, ssid, password);
-  aliotObj.run();
-  
+    // Configure necessary data for wifi and aliot connection
+    aliotObj.setupConfig(authToken, objectId, ssid, password);
+
+    // Start connection process and listen for events
+    aliotObj.run();
 }
 
 void loop() {
-  aliotObj.loop();
+    aliotObj.loop();
 }
