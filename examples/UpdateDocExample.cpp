@@ -2,7 +2,8 @@
 
 /**
  * UPDATE DOC EXAMPLE
- * 
+ * Examples on how to use the updateDoc() method. 
+ * The whole process can be written in a single call to updateDoc(), but lets break down the steps for clarity.
 */
 
 // Setup wifi credentials
@@ -56,7 +57,7 @@ void loop() {
 
     aliotObj.updateDoc( // Update document
         createDict<int>( // String representation of JSON object with key/value pairs
-            { // List of all key/value pairs
+            { // List of key/value pairs
                 Dict("/doc/humidity", humidity), // Humidity dict
                 Dict("/doc/temperature", temperature),  // Temperature dict
                 Dict("/doc/luminosity", luminosity) // Luminosity dict
@@ -68,7 +69,7 @@ void loop() {
     // SUPPORT FOR OTHER DATA TYPES
     // ============================
 
-    // createDict supports all data types that can be represented . Not arrays though (yet).
+    // createDict supports all data types that can be represented with ArduinoJson. Not arrays though (yet).
 
     // String values
     aliotObj.updateDoc(
@@ -77,7 +78,8 @@ void loop() {
             Dict("/doc/anotherExample", "Lorem Ipsum")
         }));
 
-    // Boolean values
+    // Boolean values 
+    // Note : no need for braces when passing a single Dict
     aliotObj.updateDoc(createDict<bool>(Dict("/doc/connected", true)));
 
     // Other numbers
