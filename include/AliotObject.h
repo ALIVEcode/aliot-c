@@ -23,8 +23,6 @@ typedef struct {
 
 
 typedef const char* AliotEvent_t;
-typedef String AliotDoc_t;
-
 struct AliotEvents {
     static inline AliotEvent_t EVT_CONNECT_SUCCESS = "connect_success";
     static inline AliotEvent_t EVT_CONNECT_OBJECT = "connect_object";
@@ -34,62 +32,100 @@ struct AliotEvents {
     static inline AliotEvent_t EVT_UPDATE_DOC = "update_doc";
 };
 
-// By turning the key-value pair into a string, we can create json documents with different value types
-// while having the correct json format for each type, without causing method overload ambiguity.
-// Then, we can pass the AliotDoc_t (String) as a parameter in the update doc method, and convert it back to a json object,
-// Without the compiler having to know the type of the value parameter.
-// All we have to do is pass createDoc<T>(key, value), only needing to specify the type of the second parameter
-// when passing it in updateDoc();
-template<typename T> AliotDoc_t createDoc(const char* key, T value) {  
-    StaticJsonDocument<300> doc;
 
-    // Output target
-    AliotDoc_t aliotDocument; 
+// ==================
+// Aliot Dictionary
+// ==================
 
-    // json object can figure out the type of the value itself
-    doc["fields"][key] = value;
+/*
+The purpose of the following code is to create key/value pairs in a Json object
+by directly initializing the pairs in the parameters of the createDict function.
+To format json objects correctly, we first deserialize the pairs in createDict(),
+serialize it into a string, pass the string in another method, deserialize the string again to change it,
+and so on. This allows more flexibility in the value types.
+*/
 
-    // Serialize the json document into a string
-    serializeJson(doc, aliotDocument);
+typedef String AliotDict_t;
 
-    return aliotDocument;
-}
+template<typename T>
+struct Dict {
+    const char* key;
+    T value;
 
+    Dict(const char* key, T value) {
+        this->key = key; 
+        this->value = value;
+    }
+};
+
+/*
+Create a list of key/value pairs and return a string representation of the JSON object.
+Generic type T refers to the value type in the key/value pair. All values in list must be of same type.
+*/
+template<typename T> AliotDict_t createDict(std::vector<Dict<T>> dictList) {
+    StaticJsonDocument<500> doc;
+    String data; // TODO: get rid of strings
+
+    for (int i = 0; i < dictList.size(); i++) 
+        doc[dictList[i].key] = dictList[i].value;
+    
+    serializeJson(doc, data);
+    return data;
+};
+
+template<typename T> AliotDict_t createDict(Dict<T> dict) {
+    return createDict(std::vector<Dict<T>> {dict});
+};
+
+// ==================
+// ALIOT OBJECT CLASS
+// ==================
 
 class AliotObject {
     public:
+        
+
         AliotObject();
         ~AliotObject();
 
+        /*
+        Set to false by default. If true, prints out all received/sent payloads.
+        */
+        void setDebugMode(bool debugMode);
+
         void run();
         void stop();
+
 
         // Temporary configuration system
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password);
         void loop();
 
-        // TODO: Make this more generic
-        void sendEvent(AliotEvent_t event, const char* data);
-        void sendEvent(AliotEvent_t event, JsonObject& nestedData);
+        void connectObject();
 
-        // Example :
-        // - updateDoc(createDoc<int>("/doc/int", 100));
-        // - updateDoc(createDoc<double>("/doc/double", 100.0));
-        // - updateDoc(createDoc<bool>("/doc/bool", true));
-        // - updateDoc(createDoc<const char*>("/doc/string", "Hello World"));
-        void updateDoc(AliotDoc_t doc);
+        void sendEvent(AliotEvent_t event, const char* data);
+        void sendEvent(AliotEvent_t event, String data);
+
+        void updateDoc(AliotDict_t aliotDict);
 
         
+        void handleEvent(AliotEvent_t event, const char* data);
 
         void onMessage(uint8_t * payload, size_t length);
-        void onError(const char* data);
+
+        // Only handles "already connected" error for now
+        void onError(const char* errorData);
+
         void onOpen();
         void onClose();
 
-
     private:
-        WebSocketsClient mClient;
-        AliotWebSocketConfig mConfig;
+        WebSocketsClient _client;
+        AliotWebSocketConfig _config;
+
+        bool _connected;
+        bool _validConfig;
+        bool _debugMode; 
         
         void setupWiFi();
         void setupWebSocket();
