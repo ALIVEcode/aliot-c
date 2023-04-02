@@ -4,7 +4,11 @@
  * UPDATE DOC EXAMPLE
  * Examples on how to use the updateDoc() method. 
  * The whole process can be written in a single call to updateDoc(), but lets break down the steps for clarity.
-*/
+ * 
+ * /!\ WARNING /!\
+ * This file is only an example. Do not send update doc with this much data all at once.
+ * Nothing bad happens, but the esp might reset or something. I haven't tested the capacity yet.
+ * */
 
 // Setup wifi credentials
 const char* ssid = "";
@@ -38,18 +42,18 @@ void loop() {
     int luminosity = 100;
 
     // ==== KEY/VALUE PAIRS ====
-    Dict humidityDict = Dict<int>("/doc/humidity", 50);
-    Dict temperatureDict = Dict<int>("/doc/temperature", 25);
-    Dict luminosityDict = Dict<int>("/doc/luminosity", 100);
+    Pair humidityDict = Pair<int>("/doc/humidity", 50);
+    Pair temperatureDict = Pair<int>("/doc/temperature", 25);
+    Pair luminosityDict = Pair<int>("/doc/luminosity", 100);
 
     // ==== LIST OF KEY/VALUE PAIRS ====
-    std::vector<Dict<int>> dictList = { humidityDict, temperatureDict, luminosityDict };
+    std::vector<Pair<int>> pairList = { humidityDict, temperatureDict, luminosityDict };
 
     // ==== STRING REPRESENTATION OF JSON OBJECT WITH KEY/VALUE PAIRS ====
-    AliotDict_t aliotDict = createDict(dictList);
+    AliotDict_t aliotDict = createDict(pairList);
 
     // ======= UPDATE DOCUMENT =========
-    aliotObj.updateDoc(aliotDict);
+    aliotObj.updateDoc(aliot);
 
     // ====================================
     // PUTTING ALL OF THE ABOVE TOGETHER...
@@ -58,36 +62,42 @@ void loop() {
     aliotObj.updateDoc( // Update document
         createDict<int>( // String representation of JSON object with key/value pairs
             { // List of key/value pairs
-                Dict("/doc/humidity", humidity), // Humidity dict
-                Dict("/doc/temperature", temperature),  // Temperature dict
-                Dict("/doc/luminosity", luminosity) // Luminosity dict
+                Pair("/doc/humidity", humidity), // Humidity dict
+                Pair("/doc/temperature", temperature),  // Temperature dict
+                Pair("/doc/luminosity", luminosity) // Luminosity dict
             }
         )
-    )
+    );
 
     // ============================
     // SUPPORT FOR OTHER DATA TYPES
     // ============================
 
-    // createDict supports all data types that can be represented with ArduinoJson. Not arrays though (yet).
+    // createDict supports all data types that can be represented with ArduinoJson. 
+    // See UpdateDocArrayExample.cpp for examples with json arrays.
 
     // String values
     aliotObj.updateDoc(
         createDict<const char*>({
-            Dict("/doc/example", "Hello World!"),
-            Dict("/doc/anotherExample", "Lorem Ipsum")
+            Pair("/doc/example", "Hello World!"),
+            Pair("/doc/anotherExample", "Lorem Ipsum")
         }));
 
     // Boolean values 
-    // Note : no need for braces when passing a single Dict
-    aliotObj.updateDoc(createDict<bool>(Dict("/doc/connected", true)));
+    aliotObj.updateDoc(
+        createDict<bool>(
+            { // YOU NEED BRACES AROUND THE PAIR...
+                Pair("/doc/connected", true)
+            } // ...EVENT WHEN THERE IS ONLY 1 ELEMENT !
+        )
+    );
 
     // Other numbers
     aliotObj.updateDoc(
         createDict<float>({
-            Dict("/doc/temperature", 25.5),
-            Dict("/doc/humidity", 50.5),
-            Dict("/doc/luminosity", 100.5)
+            Pair("/doc/temperature", 25.5),
+            Pair("/doc/humidity", 50.5),
+            Pair("/doc/luminosity", 100.5)
         }));
 
     // etc, etc, etc...
