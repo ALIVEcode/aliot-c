@@ -1,24 +1,26 @@
-#include <Arduino.h>
 #include "AliotObject.h"
 
+// Setup WiFi credentials
 const char* ssid = "";
 const char* password = "";
 
-const char* auth_token = "";
-const char* object_id = "";
-
+// Setup Aliot credentials
+const char* authToken = "";
+const char* objectId = "";
 
 // Create AliotObject instance
-AliotObject AWSClient = AliotObject();
+AliotObject aliotObj = AliotObject();
 
 void setup() {
   Serial.begin(115200);
-  pinMode(0, INPUT_PULLUP);
-   
-  AWSClient.setupConfig(auth_token, object_id, ssid, password);
-  AWSClient.run();
+  
+  aliotObj.setDebugMode(true);
+
+  aliotObj.setupConfig(authToken, objectId, ssid, password);
+  aliotObj.run();
+  
 }
 
 void loop() {
- AWSClient.loop();
+  aliotObj.loop();
 }
