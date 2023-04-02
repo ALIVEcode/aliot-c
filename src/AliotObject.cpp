@@ -3,9 +3,11 @@
 AliotObject::AliotObject() {
     Serial.begin(115200);
     this->_client = WebSocketsClient();
-    this->_debugMode = false;
-}
 
+    this->_debugMode = false;
+    this->_connected = false;
+    this->_validConfig = false;
+}
 
 // Dont call this yet, causes corrupted head error
 AliotObject::~AliotObject() {
@@ -14,6 +16,10 @@ AliotObject::~AliotObject() {
 
 void AliotObject::setDebugMode(bool debugMode) {
     this->_debugMode = debugMode;
+}
+
+bool AliotObject::isConnected() {
+    return this->_connected;
 }
 
 void AliotObject::run() {
@@ -74,6 +80,9 @@ void AliotObject::onMessage(uint8_t * payload, size_t length) {
 
 
 void AliotObject::onError(const char* data) {
+    // Print error regardless of debug mode
+    Serial.println(data);
+
     bool equalString = false;
     bool startComparison = false;   
     int startIndex = 0;
@@ -106,7 +115,6 @@ void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
     String output;
 
     // Need 2 json docs for this operation
-
     // One to transfer string data to so that we can format it correctly
     StaticJsonDocument<500> dataHolderDoc;
     deserializeJson(dataHolderDoc, data);
@@ -117,10 +125,10 @@ void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
     payloadDoc["event"] = event;
 
     // === Conditional formatting ===
+    // Update doc event requires data to be in "fields"
     if (!strcmp(event, AliotEvents::EVT_UPDATE_DOC)) {
-        // Update doc event requires data to be in "fields"
         payloadDoc["data"]["fields"] = dataHolderDoc.as<JsonObject>();
-    } else {
+    } else { 
         payloadDoc["data"] = dataHolderDoc.as<JsonObject>();
     }
 
@@ -139,19 +147,22 @@ void AliotObject::sendEvent(AliotEvent_t event, String data) {
 }
 
 void AliotObject::updateDoc(AliotDict_t aliotDict) {
-    this->sendEvent(AliotEvents::EVT_UPDATE_DOC, aliotDict);
+    if (this->_connected) 
+        this->sendEvent(AliotEvents::EVT_UPDATE_DOC, aliotDict);
 }
 
 void AliotObject::connectObject() {
     this->sendEvent(AliotEvents::EVT_CONNECT_OBJECT,
         createDict<const char*>({
-            Dict("token", this->_config.authToken),
-            Dict("id", this->_config.objectId)
+            Pair("token", this->_config.authToken),
+            Pair("id", this->_config.objectId)
     }));
 }
 
-
 void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
+
+    // Reminder : strcmp returns 0 if strings are equal
+
     if (!strcmp(event, AliotEvents::EVT_PING)) {
         this->sendEvent(AliotEvents::EVT_PONG, "");
     }
