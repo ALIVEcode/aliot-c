@@ -9,6 +9,7 @@
  * Nothing bad happens, but the esp might reset or something. I haven't tested the capacity yet.
  * */
 
+
 // Setup wifi credentials
 const char* ssid = "";
 const char* password = "";
@@ -34,10 +35,14 @@ void loop() {
     //============================================
     // DETAILED ANATOMY OF UPDATEDOC() WITH ARRAYS
     //============================================
+    
+    // ==== DETERMINE THE NUMBER OF ARRAYS ====
+    // We need to specify the number of arrays that will be passed through the createDict function.
+    const size_t ARRAY_LIST_SIZE = 3; 
 
     // ==== DETERMINE THE NUMBER OF ELEMENTS IN THE ARRAYS ====
-    // Array size must be the same in for all arrays in the list
-    const size_t ARRAY_SIZE = 3;
+    // We need to specify the number of elements in each array
+    const size_t ARRAY_SIZE = 3; 
 
     // ==== ARRAYS ====
     int humidity[ARRAY_SIZE] = { 50, 60, 70 };
@@ -50,10 +55,10 @@ void loop() {
     Pair luminosityPairArray = Pair<int[ARRAY_SIZE]>("/doc/luminosity", luminosity);
 
     // ==== LIST OF KEY/VALUE PAIRS ====
-    std::vector<Pair<int[ARRAY_SIZE]>> pairList = { humidityPairArray, temperaturePairArray, luminosityPairArray };
+    std::array<Pair<int[ARRAY_SIZE]>, ARRAY_LIST_SIZE> pairList = { humidityPairArray, temperaturePairArray, luminosityPairArray };
 
     // ==== STRING REPRESENTATION OF JSON OBJECT WITH KEY/VALUE PAIRS ====
-    AliotDict_t aliotDict = createDict<int, ARRAY_SIZE>(pairList);
+    AliotDict_t aliotDict = createDict(pairList);
 
     // ======= UPDATE DOCUMENT =========
     aliotObj.updateDoc(aliotDict);
@@ -67,12 +72,25 @@ void loop() {
     // the types in both the createDict template arguments, and the Pair template arguments.
 
     aliotObj.updateDoc(
-        createDict<int, ARRAY_SIZE>({
+        createDict<int, ARRAY_SIZE, ARRAY_LIST_SIZE>({
             Pair<int[ARRAY_SIZE]>("/doc/humidity", { 50, 60, 70 }),
             Pair<int[ARRAY_SIZE]>("/doc/temperature", { 25, 26, 27 }),
             Pair<int[ARRAY_SIZE]>("/doc/luminosity", { 100, 200, 300 })
         })
     );
+
+    // =========================================
+    // RECOMMENDED METHOD FOR UPDATE DOC ARRAYS
+    // =========================================
+
+    // The following code is equivalent to the above code.
+    // Always opt for individual createDict() calls if you're gonna update the document often.
+    // Prevents stack overflow errors. Dont go overboard, maybe sprinkle a few delays in there.
+    
+    aliotObj.updateDoc(createDict<int[ARRAY_SIZE]>(Pair<int[ARRAY_SIZE]>("/doc/humidity", { 50, 60, 70 })));
+    aliotObj.updateDoc(createDict<int[ARRAY_SIZE]>(Pair<int[ARRAY_SIZE]>("/doc/temperature", { 25, 26, 27 })));
+    aliotObj.updateDoc(createDict<int[ARRAY_SIZE]>(Pair<int[ARRAY_SIZE]>("/doc/luminosity", { 100, 200, 300 })));
+    
 
     // ============================
     // SUPPORT FOR OTHER DATA TYPES
@@ -80,7 +98,7 @@ void loop() {
 
     // Float arrays
     aliotObj.updateDoc(
-        createDict<float, 5>({
+        createDict<float, 5, 3>({
             Pair<float[5]>("/doc/float1", { 50.0, 60.0, 70.0, 80.0, 90.0 }),
             Pair<float[5]>("/doc/float2", { 25.0, 26.0, 27.0, 28.0, 29.0 }),
             Pair<float[5]>("/doc/float3", { 100.0, 200.0, 300.0, 400.0, 500.0 })
@@ -90,12 +108,11 @@ void loop() {
     // const char arrays
     aliotObj.updateDoc(
         createDict<const char*, 26>(
-            { // YOU NEED BRACES AROUND THE PAIR ARRAY...
-                Pair<const char*[26]>("/doc/alphabet", 
-                    {"a", "b", "c", "d", "e", "f", "g", "h", "i", 
-                    "j","k", "l", "m", "n", "o", "p", "q", "r", 
-                    "s", "t","u", "v", "w", "x", "y", "z"})
-            } // ... EVENT WHEN THERE IS ONLY 1 ELEMENT !
+            Pair<const char*[26]>("/doc/alphabet", 
+                {"a", "b", "c", "d", "e", "f", "g", "h", "i", 
+                "j","k", "l", "m", "n", "o", "p", "q", "r", 
+                "s", "t","u", "v", "w", "x", "y", "z"}
+            )
         )
     );
 }

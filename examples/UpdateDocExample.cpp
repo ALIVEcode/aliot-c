@@ -36,6 +36,10 @@ void loop() {
     // DETAILED ANATOMY OF UPDATEDOC()
     //===============================
 
+    // ==== DETERMINE THE NUMBER OF PAIRS ====
+    // We need to specify the number of key/value pairs that will be passed through the createDict function.
+    const size_t PAIR_LIST_SIZE = 3; 
+
     // ==== VALUES ====
     int humidity = 50;
     int temperature = 25;
@@ -47,20 +51,20 @@ void loop() {
     Pair luminosityDict = Pair<int>("/doc/luminosity", 100);
 
     // ==== LIST OF KEY/VALUE PAIRS ====
-    std::vector<Pair<int>> pairList = { humidityDict, temperatureDict, luminosityDict };
+    std::array<Pair<int>, PAIR_LIST_SIZE> pairList = { humidityDict, temperatureDict, luminosityDict };
 
     // ==== STRING REPRESENTATION OF JSON OBJECT WITH KEY/VALUE PAIRS ====
     AliotDict_t aliotDict = createDict(pairList);
 
     // ======= UPDATE DOCUMENT =========
-    aliotObj.updateDoc(aliot);
+    aliotObj.updateDoc(aliotDict);
 
     // ====================================
     // PUTTING ALL OF THE ABOVE TOGETHER...
     // ====================================
 
     aliotObj.updateDoc( // Update document
-        createDict<int>( // String representation of JSON object with key/value pairs
+        createDict<int, 3>( // String representation of JSON object with key/value pairs
             { // List of key/value pairs
                 Pair("/doc/humidity", humidity), // Humidity dict
                 Pair("/doc/temperature", temperature),  // Temperature dict
@@ -68,6 +72,17 @@ void loop() {
             }
         )
     );
+
+    // =========================================
+    // RECOMMENDED METHOD FOR UPDATE DOC ARRAYS
+    // =========================================
+
+    // The following code is equivalent to the above code.
+    // Always opt for individual createDict() calls if you're gonna update the document often.
+    // Prevents stack overflow errors. 
+    aliotObj.updateDoc(createDict<int>(Pair("/doc/humidity", humidity)));
+    aliotObj.updateDoc(createDict<int>(Pair("/doc/temperature", temperature)));
+    aliotObj.updateDoc(createDict<int>(Pair("/doc/luminosity", luminosity)));
 
     // ============================
     // SUPPORT FOR OTHER DATA TYPES
@@ -78,7 +93,7 @@ void loop() {
 
     // String values
     aliotObj.updateDoc(
-        createDict<const char*>({
+        createDict<const char*, 2>({
             Pair("/doc/example", "Hello World!"),
             Pair("/doc/anotherExample", "Lorem Ipsum")
         }));
@@ -86,15 +101,13 @@ void loop() {
     // Boolean values 
     aliotObj.updateDoc(
         createDict<bool>(
-            { // YOU NEED BRACES AROUND THE PAIR...
                 Pair("/doc/connected", true)
-            } // ...EVENT WHEN THERE IS ONLY 1 ELEMENT !
         )
     );
 
     // Other numbers
     aliotObj.updateDoc(
-        createDict<float>({
+        createDict<float, 3>({
             Pair("/doc/temperature", 25.5),
             Pair("/doc/humidity", 50.5),
             Pair("/doc/luminosity", 100.5)
