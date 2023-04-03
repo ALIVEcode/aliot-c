@@ -75,7 +75,7 @@ void AliotObject::onClose() {
 void AliotObject::onMessage(uint8_t * payload, size_t length) { 
     if (this->_debugMode) Serial.println((char*) payload);
 
-    StaticJsonDocument<200> doc;
+    StaticJsonDocument<256> doc;
     deserializeJson(doc, (char*) payload);
     this->handleEvent(doc["event"], doc["data"]);
 }
@@ -115,7 +115,6 @@ void AliotObject::onError(const char* data) {
 
 void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
     String output;
-
     // Need 2 json docs for this operation
     // One to transfer string data to so that we can format it correctly
     StaticJsonDocument<500> dataHolderDoc;
@@ -132,15 +131,17 @@ void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
         payloadDoc["data"]["fields"] = dataHolderDoc.as<JsonObject>();
     } else { 
         payloadDoc["data"] = dataHolderDoc.as<JsonObject>();
-    }
+    }   
+
 
     // Re-convert the formatted payload to string again
     serializeJson(payloadDoc, output);
 
     // send payload
+    //this->_client.sendTXT(buff);
     this->_client.sendTXT(output.c_str());
 
-    if (this->_debugMode) Serial.println(output.c_str());
+    if (this->_debugMode) Serial.println(output);
 }
 
 void AliotObject::sendEvent(AliotEvent_t event, String data) {
@@ -153,9 +154,9 @@ void AliotObject::updateDoc(AliotDict_t aliotDict) {
         this->sendEvent(AliotEvents::EVT_UPDATE_DOC, aliotDict);
 }
 
-void AliotObject::connectObject() {
+void AliotObject::connectObject() { 
     this->sendEvent(AliotEvents::EVT_CONNECT_OBJECT,
-        createDict<const char*>({
+        createDict<const char*, 2>({
             Pair("token", this->_config.authToken),
             Pair("id", this->_config.objectId)
     }));
@@ -168,7 +169,7 @@ void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
     if (!strcmp(event, AliotEvents::EVT_PING)) {
         this->sendEvent(AliotEvents::EVT_PONG, "");
         this->_pingCounter++;
-        this->updateDoc(createDict<int>({Pair("/doc/ping", this->_pingCounter)}));
+        this->updateDoc(createDict<int>(Pair("/doc/ping", this->_pingCounter)));
     }
 
     else if (!strcmp(event, AliotEvents::EVT_ERROR)) {
