@@ -22,9 +22,6 @@ int uodateCounter = 0;
 
 
 void setup() {
-    // Enable debug mode
-    aliotObj.setDebugMode(true);
-
     // Choose a timer interval in milliseconds
     aliotObj.timer.setInterval(1000);
 

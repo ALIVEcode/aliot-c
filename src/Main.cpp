@@ -1,3 +1,4 @@
+
 #include "AliotObject.h"
 
 // Setup WiFi credentials
@@ -11,9 +12,11 @@ const char* objectId = "";
 // Create AliotObject instance
 AliotObject aliotObj = AliotObject();
 
+int counter = 0;
+
 void setup() {
-    // Comment out to disable printing all payload to Serial monitor
-    aliotObj.setDebugMode(true);
+    // Choose a timer interval in milliseconds
+    aliotObj.timer.setInterval(5000);
 
     // Configure necessary data for wifi and aliot connection
     aliotObj.setupConfig(authToken, objectId, ssid, password);
