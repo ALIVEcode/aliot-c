@@ -1,23 +1,21 @@
 #include "AliotObject.h"
 
 AliotObject::AliotObject() {
-    Serial.begin(115200);
     this->_client = WebSocketsClient();
 
-    this->_debugMode = false;
     this->_connected = false;
     this->_validConfig = false;
 
     this->_pingCounter = 0;
+
+    #ifdef ALIOT_DEBUG
+        Serial.begin(115200);
+    #endif
 }
 
 // Dont call this yet, causes corrupted head error
 AliotObject::~AliotObject() {
     this->_client.disconnect();
-}
-
-void AliotObject::setDebugMode(bool debugMode) {
-    this->_debugMode = debugMode;
 }
 
 bool AliotObject::isConnected() {
@@ -57,6 +55,10 @@ void AliotObject::setupWiFi() {
 void AliotObject::setupWebSocket() {
     this->_client.begin(this->_config.host, this->_config.port, this->_config.path);
     this->beginEventListener();
+
+    #ifdef ALIOT_DEBUG
+        Serial.println("[DEBUG] Debug mode enabled");
+    #endif
 }
 
 void AliotObject::loop() {
@@ -73,17 +75,19 @@ void AliotObject::onClose() {
 }
 
 void AliotObject::onMessage(uint8_t * payload, size_t length) { 
-    if (this->_debugMode) Serial.println((char*) payload);
+    #ifdef ALIOT_DEBUG
+        Serial.println((char*) payload);
+    #endif
 
     StaticJsonDocument<256> doc;
     deserializeJson(doc, (char*) payload);
     this->handleEvent(doc["event"], doc["data"]);
 }
 
-
 void AliotObject::onError(const char* data) {
-    // Print error regardless of debug mode
-    Serial.println(data);
+    #ifdef ALIOT_DEBUG
+        Serial.println(data);
+    #endif
 
     bool equalString = false;
     bool startComparison = false;   
@@ -127,12 +131,11 @@ void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
 
     // === Conditional formatting ===
     // Update doc event requires data to be in "fields"
-    if (!strcmp(event, AliotEvents::EVT_UPDATE_DOC)) {
+    if (!strcmp(event, EVT_UPDATE_DOC)) {
         payloadDoc["data"]["fields"] = dataHolderDoc.as<JsonObject>();
     } else { 
         payloadDoc["data"] = dataHolderDoc.as<JsonObject>();
     }   
-
 
     // Re-convert the formatted payload to string again
     serializeJson(payloadDoc, output);
@@ -141,7 +144,9 @@ void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
     //this->_client.sendTXT(buff);
     this->_client.sendTXT(output.c_str());
 
-    if (this->_debugMode) Serial.println(output);
+    #ifdef ALIOT_DEBUG
+        Serial.println(output);
+    #endif
 }
 
 void AliotObject::sendEvent(AliotEvent_t event, String data) {
@@ -151,11 +156,11 @@ void AliotObject::sendEvent(AliotEvent_t event, String data) {
 
 void AliotObject::updateDoc(AliotDict_t aliotDict) {
     if (this->_connected) 
-        this->sendEvent(AliotEvents::EVT_UPDATE_DOC, aliotDict);
+        this->sendEvent(EVT_UPDATE_DOC, aliotDict);
 }
 
 void AliotObject::connectObject() { 
-    this->sendEvent(AliotEvents::EVT_CONNECT_OBJECT,
+    this->sendEvent(EVT_CONNECT_OBJECT,
         createDict<const char*, 2>({
             Pair("token", this->_config.authToken),
             Pair("id", this->_config.objectId)
@@ -166,17 +171,17 @@ void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
 
     // Reminder : strcmp returns 0 if strings are equal
 
-    if (!strcmp(event, AliotEvents::EVT_PING)) {
-        this->sendEvent(AliotEvents::EVT_PONG, "");
+    if (!strcmp(event, EVT_PING)) {
+        this->sendEvent(EVT_PONG, "");
         this->_pingCounter++;
         this->updateDoc(createDict<int>(Pair("/doc/ping", this->_pingCounter)));
     }
 
-    else if (!strcmp(event, AliotEvents::EVT_ERROR)) {
+    else if (!strcmp(event, EVT_ERROR)) {
         this->onError(data); // Handles only "already connected" error
     }
 
-    else if (!strcmp(event, AliotEvents::EVT_CONNECT_SUCCESS)) {
+    else if (!strcmp(event, EVT_CONNECT_SUCCESS)) {
         this->_connected = true;
     }
 }
