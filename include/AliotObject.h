@@ -42,6 +42,7 @@ typedef struct {
 
     const char* ssid;
     const char* password;
+    bool modemSleep = true;
 
     const char* authToken;
     const char* objectId;
@@ -112,6 +113,7 @@ class AliotObject {
 
         // Temporary configuration system
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password);
+        void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, const bool modemSleep);
 
         /*
         Call in the Arduino loop() function.

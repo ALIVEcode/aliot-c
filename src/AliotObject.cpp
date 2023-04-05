@@ -40,9 +40,15 @@ void AliotObject::setupConfig(const char* authToken, const char* objectId, const
     this->_validConfig = true;
 }
 
+void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, bool modemSleep) {
+    setupConfig(authToken, objectId, ssid, password);
+    this->_config.modemSleep = modemSleep;
+}
+
 void AliotObject::setupWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(this->_config.ssid, this->_config.password);
+    WiFi.setSleep(this->_config.modemSleep);
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
