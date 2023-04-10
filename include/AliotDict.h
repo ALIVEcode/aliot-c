@@ -38,8 +38,6 @@ struct Pair {
     }
 };
 
-
-
 /*
 Pair struct that can handle arrays
 T : Type of the second element (value) of the key/value pair
@@ -87,7 +85,8 @@ template<typename T, size_t N> AliotDict_t createDict(Pair<T[N]> arrayPair) {
     String data; // TODO: get rid of strings
 
     JsonArray arrayHolder = doc.createNestedArray(arrayPair.key);
-    arrayHolder.add(arrayPair.key);
+    for (int i = 0; i < N; i++)
+        arrayHolder.add(arrayPair.value[i]);
 
     serializeJson(doc, data);
     return data;
