@@ -16,14 +16,14 @@ const char* objectId = "";
 
 // Crate AliotObject instance 
 AliotObject aliotObj = AliotObject();
+AliotTimer aliotTimer = AliotTimer();
 
 // Update counter for the purposes of this example
-int uodateCounter = 0;
-
+int updateCounter = 0;
 
 void setup() {
-    // Choose a timer interval in milliseconds
-    aliotObj.timer.setInterval(1000);
+    // Set delayTime to 1 second
+    aliotTimer.setDelayTime(1000);
 
     // Configure necessary data for wifi and aliot connection
     aliotObj.setupConfig(authToken, objectId, ssid, password);
@@ -35,14 +35,9 @@ void setup() {
 void loop() {
     aliotObj.loop();
 
-    if (aliotObj.timer.wait()) {// Do something after the timer interval has passed
-        uodateCounter++;
-        aliotObj.updateDoc(createDict<unsigned long>(Pair("/doc/currentTime", millis())));
-        aliotObj.updateDoc(createDict<int>(Pair("/doc/updates", uodateCounter)));
+    // Do something only if delayTime has passed
+    if (!aliotObj.timer.waitDelayTime()) return;
 
-        if (!(uodateCounter % 10)) { // After 10 update, increase wait interval by 1 second
-            aliotObj.timer.setInterval(aliotObj.timer._interval + 1000);
-        }
-
-    }
+    updateCounter++;
+    aliotObj.updateDoc(createDict<int>(Pair("/doc/updates", updateCounter)));
 }
