@@ -6,7 +6,10 @@ AliotObject::AliotObject() {
     this->_connected = false;
     this->_validConfig = false;
 
-    this->_pingCounter = 0;
+    this->_onStartCallback = NULL;
+
+    this->timer = AliotTimer();
+
 
     #ifdef ALIOT_DEBUG
         Serial.begin(115200);
@@ -18,6 +21,10 @@ AliotObject::~AliotObject() {
     this->_client.disconnect();
 }
 
+void AliotObject::onStart(AliotEventCallback callback) {
+    this->_onStartCallback = callback;
+}
+
 bool AliotObject::isConnected() {
     return this->_connected;
 }
@@ -27,8 +34,13 @@ void AliotObject::run() {
         this->setupWiFi();
         this->setupWebSocket();  
     } else {
-        Serial.println("[ERROR] Invalid configuration. Call setupConfig() before run()");
+        Serial.println("[Error] Invalid configuration. Call setupConfig() before run()");
     }
+}
+
+void AliotObject::runLocal(const char* IPAdress) {
+    this->_config.host = IPAdress;
+    this->run();
 }
 
 void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password) {
@@ -40,7 +52,7 @@ void AliotObject::setupConfig(const char* authToken, const char* objectId, const
     this->_validConfig = true;
 }
 
-void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, bool modemSleep) {
+void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, const bool modemSleep) {
     setupConfig(authToken, objectId, ssid, password);
     this->_config.modemSleep = modemSleep;
 }
@@ -48,7 +60,7 @@ void AliotObject::setupConfig(const char* authToken, const char* objectId, const
 void AliotObject::setupWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(this->_config.ssid, this->_config.password);
-    WiFi.setSleep(this->_config.modemSleep);
+    // WiFi.setSleep(this->_config.modemSleep);
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
@@ -61,23 +73,85 @@ void AliotObject::setupWiFi() {
 void AliotObject::setupWebSocket() {
     this->_client.begin(this->_config.host, this->_config.port, this->_config.path);
     this->beginEventListener();
-
-    #ifdef ALIOT_DEBUG
-        Serial.println("[DEBUG] Debug mode enabled");
-    #endif
 }
 
 void AliotObject::loop() {
     this->_client.loop();
 }
 
+void AliotObject::runBeforeDeepSleep(AliotTimerCallback timerCallback) {
+    while (!this->_connected) 
+        this->_client.loop();
+
+    if (timerCallback()) 
+        timer.deepSleep();
+}
+
+bool AliotObject::sendEvent(AliotEvent_t event, const char* data) {
+    String output;
+    // Need 2 json docs for this operation
+    // One to transfer string data to so that we can format it correctly
+    StaticJsonDocument<500> dataHolderDoc;
+    deserializeJson(dataHolderDoc, data);
+
+    // One to hold the complete formatted payload that will be sent
+    StaticJsonDocument<500> payloadDoc;
+
+    payloadDoc["event"] = event;
+
+    // === Conditional formatting ===
+    // Update doc event requires data to be in "fields"
+    if (!strcmp(event, AliotEvents::EVT_UPDATE_DOC)) {
+        payloadDoc["data"]["fields"] = dataHolderDoc.as<JsonObject>();
+    } else { 
+        payloadDoc["data"] = dataHolderDoc.as<JsonObject>();
+    }   
+
+    // Re-convert the formatted payload to string again
+    serializeJson(payloadDoc, output);
+
+    // send payload
+    
+    #ifdef ALIOT_DEBUG
+        Serial.println("[AliotWS] Sent event");
+        Serial.println(output);
+    #endif
+    
+    return this->_client.sendTXT(output.c_str());
+}
+
+bool AliotObject::sendEvent(AliotEvent_t event, String data) {
+    // Exists only in case we forget to call c_str() 
+    return this->sendEvent(event, data.c_str());
+}
+
+bool AliotObject::updateDoc(AliotDict_t aliotDict) {
+    if (this->_connected) 
+        return this->sendEvent(AliotEvents::EVT_UPDATE_DOC, aliotDict);
+    return false;
+}
+
+bool AliotObject::connectObject() { 
+    return this->sendEvent(AliotEvents::EVT_CONNECT_OBJECT,
+        createDict<const char*, 2>({
+            Pair("token", this->_config.authToken),
+            Pair("id", this->_config.objectId)
+    }));
+}
+
 void AliotObject::onOpen() {
-    // onOpen and connectObject are different methods, just in case we'll add sth else to onOpen
     this->connectObject();
+    // onOpen and connectObject are different methods, just in case we'll add sth else to onOpen
+    #ifdef ALIOT_DEBUG
+        Serial.println("[AliotWS] Connected to WebSocket");
+    #endif
+    
 }
 
 void AliotObject::onClose() {
-
+    #ifdef ALIOT_DEBUG
+        Serial.println("[AliotWS] Disconnected");
+    #endif
 }
 
 void AliotObject::onMessage(uint8_t * payload, size_t length) { 
@@ -123,73 +197,23 @@ void AliotObject::onError(const char* data) {
     }
 }
 
-void AliotObject::sendEvent(AliotEvent_t event, const char* data) {
-    String output;
-    // Need 2 json docs for this operation
-    // One to transfer string data to so that we can format it correctly
-    StaticJsonDocument<500> dataHolderDoc;
-    deserializeJson(dataHolderDoc, data);
-
-    // One to hold the complete formatted payload that will be sent
-    StaticJsonDocument<500> payloadDoc;
-
-    payloadDoc["event"] = event;
-
-    // === Conditional formatting ===
-    // Update doc event requires data to be in "fields"
-    if (!strcmp(event, EVT_UPDATE_DOC)) {
-        payloadDoc["data"]["fields"] = dataHolderDoc.as<JsonObject>();
-    } else { 
-        payloadDoc["data"] = dataHolderDoc.as<JsonObject>();
-    }   
-
-    // Re-convert the formatted payload to string again
-    serializeJson(payloadDoc, output);
-
-    // send payload
-    //this->_client.sendTXT(buff);
-    this->_client.sendTXT(output.c_str());
-
-    #ifdef ALIOT_DEBUG
-        Serial.println(output);
-    #endif
-}
-
-void AliotObject::sendEvent(AliotEvent_t event, String data) {
-    // Exists only in case we forget to call c_str() 
-    this->sendEvent(event, data.c_str());
-}
-
-void AliotObject::updateDoc(AliotDict_t aliotDict) {
-    if (this->_connected) 
-        this->sendEvent(EVT_UPDATE_DOC, aliotDict);
-}
-
-void AliotObject::connectObject() { 
-    this->sendEvent(EVT_CONNECT_OBJECT,
-        createDict<const char*, 2>({
-            Pair("token", this->_config.authToken),
-            Pair("id", this->_config.objectId)
-    }));
-}
-
 void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
 
     // Reminder : strcmp returns 0 if strings are equal
 
-    if (!strcmp(event, EVT_PING)) {
-        this->sendEvent(EVT_PONG, "");
-        this->_pingCounter++;
-        this->updateDoc(createDict<int>(Pair("/doc/ping", this->_pingCounter)));
+    if (!strcmp(event, AliotEvents::EVT_PING))  {
+        this->sendEvent(AliotEvents::EVT_PONG, "");
     }
 
-    else if (!strcmp(event, EVT_ERROR)) {
+    else if (!strcmp(event, AliotEvents::EVT_ERROR)) {
         this->onError(data); // Handles only "already connected" error
     }
 
-    else if (!strcmp(event, EVT_CONNECT_SUCCESS)) {
+    else if (!strcmp(event, AliotEvents::EVT_CONNECT_SUCCESS)) {
         this->_connected = true;
+        if (_onStartCallback) _onStartCallback();
     }
+    
 }
 
 void AliotObject::beginEventListener() {
