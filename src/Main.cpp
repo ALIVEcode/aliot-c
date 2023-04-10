@@ -1,23 +1,17 @@
-
 #include "AliotObject.h"
 
-// Setup WiFi credentials
+// Setup wifi credentials
 const char* ssid = "";
 const char* password = "";
 
-// Setup Aliot credentials
+// Setup aliot credentials
 const char* authToken = "";
 const char* objectId = "";
 
-// Create AliotObject instance
+// Crate AliotObject instance 
 AliotObject aliotObj = AliotObject();
 
-int counter = 0;
-
 void setup() {
-    // Choose a timer interval in milliseconds
-    aliotObj.timer.setInterval(5000);
-
     // Configure necessary data for wifi and aliot connection
     aliotObj.setupConfig(authToken, objectId, ssid, password);
 
@@ -28,3 +22,6 @@ void setup() {
 void loop() {
     aliotObj.loop();
 }
+
+
+
