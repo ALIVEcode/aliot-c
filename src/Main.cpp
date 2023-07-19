@@ -8,7 +8,7 @@ const char* password = "";
 const char* authToken = "";
 const char* objectId = "";
 
-// Crate AliotObject instance 
+// Create AliotObject instance 
 AliotObject aliotObj = AliotObject();
 
 void setup() {
