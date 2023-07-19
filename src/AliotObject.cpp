@@ -134,8 +134,8 @@ bool AliotObject::updateDoc(AliotDict_t aliotDict) {
 bool AliotObject::connectObject() { 
     return this->sendEvent(AliotEvents::EVT_CONNECT_OBJECT,
         createDict<const char*, 2>({
-            Pair("token", this->_config.authToken),
-            Pair("id", this->_config.objectId)
+            Pair<const char*>("token", this->_config.authToken),
+            Pair<const char*>("id", this->_config.objectId)
     }));
 }
 
