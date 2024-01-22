@@ -15,6 +15,9 @@ struct AliotEvents {
     static inline AliotEvent_t EVT_PING = "ping";
     static inline AliotEvent_t EVT_PONG = "pong";
     static inline AliotEvent_t EVT_UPDATE_DOC = "update_doc";
+    static inline AliotEvent_t EVT_SEND_ACTION = "send_action";
+    static inline AliotEvent_t EVT_SEND_ACTION_DONE = "send_action_done";
+    static inline AliotEvent_t EVT_RECEIVE_ACTION = "receive_action";
 };
 
 
@@ -36,6 +39,13 @@ typedef struct {
 
 typedef std::function<void()> AliotEventCallback;
 
+typedef std::function<bool(const char* data)> AliotActionCallback;
+
+typedef struct {
+    char* actionId = NULL;
+    AliotActionCallback callback;
+} AliotAction;
+
 using namespace Dict;
 
 class AliotObject {
@@ -49,6 +59,8 @@ class AliotObject {
         // State of Aliot Object
         bool _connected;
         bool _validConfig;
+
+        AliotAction _actionMap[MAX_ACTION_COUNT];
     
     public:
         AliotTimer timer;
@@ -94,11 +106,14 @@ class AliotObject {
         // Return true if updateDoc event was sent successfully
         bool updateDoc(AliotDict_t aliotDict);
 
-        void handleEvent(AliotEvent_t event, const char* data);
+        void handleEvent(AliotEvent_t event, StaticJsonDocument<256> doc);
 
         void onStart(AliotEventCallback callback);
 
         void onMessage(uint8_t * payload, size_t length);
+
+        void onActionRecv(const char* actionId, AliotActionCallback callback);
+        void onActionRecv(const char* actionId, AliotActionCallback callback, bool log_reception);
 
         // Only handles "already connected" error for now
         void onError(const char* errorData);

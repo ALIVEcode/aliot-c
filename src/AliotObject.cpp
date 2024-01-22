@@ -10,7 +10,6 @@ AliotObject::AliotObject() {
 
     this->timer = AliotTimer();
 
-
     #ifdef ALIOT_DEBUG
         Serial.begin(115200);
     #endif
@@ -71,6 +70,9 @@ void AliotObject::setupWiFi() {
 
 // TODO: Switch to secure connection 
 void AliotObject::setupWebSocket() {
+    #ifdef ALIOT_DEBUG
+        Serial.println("[AliotWS] Creating WebSocket");
+    #endif
     this->_client.begin(this->_config.host, this->_config.port, this->_config.path);
     this->beginEventListener();
 }
@@ -132,6 +134,9 @@ bool AliotObject::updateDoc(AliotDict_t aliotDict) {
 }
 
 bool AliotObject::connectObject() { 
+    #ifdef ALIOT_DEBUG
+        Serial.println("[AliotWS] Connecting to WebSocket");
+    #endif
     return this->sendEvent(AliotEvents::EVT_CONNECT_OBJECT,
         createDict<const char*, 2>({
             Pair<const char*>("token", this->_config.authToken),
@@ -161,7 +166,60 @@ void AliotObject::onMessage(uint8_t * payload, size_t length) {
 
     StaticJsonDocument<256> doc;
     deserializeJson(doc, (char*) payload);
-    this->handleEvent(doc["event"], doc["data"]);
+
+    this->handleEvent(doc["event"], doc);
+}
+
+void AliotObject::onActionRecv(const char* actionID, AliotActionCallback callback) {
+    this->onActionRecv(actionID, callback, true);
+}
+
+void AliotObject::onActionRecv(const char* actionID, AliotActionCallback callback, bool logReception) {
+    // Create wrapper function to pass to WebSocketClientEvent callback
+
+    auto wrapper = [this, actionID, logReception, callback](const char* data) {
+        if (logReception) {
+            #ifdef ALIOT_DEBUG
+                Serial.print("The protocol: ");
+                Serial.print(actionID);
+                Serial.print(" was called with the arguments: ");
+                Serial.print(data);
+                Serial.println();
+            #endif
+        }
+
+        bool res = false;
+        if (callback) {
+            res = callback(data);
+        }
+
+        return this->sendEvent(AliotEvents::EVT_SEND_ACTION_DONE,
+            createDict<const char*, 2>({
+                Pair<const char*>("actionId", actionID),
+                Pair<const char*>("value",res ? "true" : "false")
+        }));
+    };
+
+    // Add action to action map
+    for (int i = 0; i < MAX_ACTION_COUNT; i++) {
+        if (this->_actionMap[i].actionId != NULL) continue;
+
+        this->_actionMap[i] .actionId = (char*) actionID;
+        this->_actionMap[i] .callback = wrapper;
+
+        #ifdef ALIOT_DEBUG
+            Serial.print("[AliotWS] Added action ");
+            Serial.print(actionID);
+            Serial.print(" to action map at index ");
+            Serial.println(i);
+        #endif
+
+        return;
+    }
+
+    #ifdef ALIOT_DEBUG
+        Serial.println("[AliotWS] Action map is full");
+    #endif
 }
 
 void AliotObject::onError(const char* data) {
@@ -197,7 +255,7 @@ void AliotObject::onError(const char* data) {
     }
 }
 
-void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
+void AliotObject::handleEvent(AliotEvent_t event, StaticJsonDocument<256> doc) {
 
     // Reminder : strcmp returns 0 if strings are equal
 
@@ -206,12 +264,42 @@ void AliotObject::handleEvent(AliotEvent_t event, const char* data) {
     }
 
     else if (!strcmp(event, AliotEvents::EVT_ERROR)) {
-        this->onError(data); // Handles only "already connected" error
+        this->onError(doc["data"]); // Handles only "already connected" error
     }
 
     else if (!strcmp(event, AliotEvents::EVT_CONNECT_SUCCESS)) {
         this->_connected = true;
         if (_onStartCallback) _onStartCallback();
+    }
+
+    else if (!strcmp(event, AliotEvents::EVT_RECEIVE_ACTION)) {
+        JsonObject data = doc["data"];
+
+        DynamicJsonDocument dataDoc(256);
+        dataDoc["data"] = data;
+
+        // Extract values
+        const char* actionID = dataDoc["data"]["id"];
+        
+        String actionValue = dataDoc["data"]["value"].as<String>();
+        const char* actionValueChar = actionValue.c_str();
+
+        // Call action callback
+        for (int i = 0; i < MAX_ACTION_COUNT; i++) {
+            const char* currentActionID = this->_actionMap[i].actionId;
+            if (strcmp(currentActionID, actionID)) continue;
+
+            this->_actionMap[i].callback(actionValueChar);
+            
+            return;
+        }
+
+        #ifdef ALIOT_DEBUG
+            Serial.print("[AliotWS] Could not call action ");
+            Serial.print(actionID);
+            Serial.println(" is not found in action map");
+        #endif
+
     }
     
 }
