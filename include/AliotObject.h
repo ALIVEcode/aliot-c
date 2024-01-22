@@ -21,7 +21,7 @@ struct AliotEvents {
 // Aliot WebSocket Configuration 
 // Temporary config system to put everything in one place
 typedef struct {
-    int port = 8881; // TODO: Secure connection
+    int port = 8881;
     const char* host = "alivecode.ca";
     const char* path = "/iotgateway/";
 
