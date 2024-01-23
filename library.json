@@ -1,0 +1,33 @@
+{
+    "name": "Aliot-C",
+    "version": "1.0.0",
+    "description": "Client script for ALIVEcode IoT devices\n This library is used to create an IoT device that can be controlled by the ALIVEcode platform and send data to it.",
+    "keywords": "IoT, ALIVEcode, Aliot",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/ALIVEcode/aliot-c.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Merieme Bouisri",
+        "email": "alivecode.developers@gmail.com",
+        "url": "https://alivecode.ca"
+      },
+      {
+        "name": "Nils Lahaye",
+        "email": "alivecode.developers@gmail.com",
+        "url": "https://alivecode.ca",
+        "maintainer": true
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://www.helloworld.org/",
+    "dependencies": {
+      "bblanchon/ArduinoJson": "~6.21.0",
+      "links2004/WebSockets": "~2.3.7"
+    },
+    "frameworks": "arduino",
+    "platforms": "*"
+  }
