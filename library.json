@@ -32,6 +32,11 @@
 
 
     },
+    "export": {
+      "exclude": [
+          "tests"
+      ]
+    },
     "frameworks": "arduino",
     "platforms": "*"
   }
