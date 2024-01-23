@@ -1,5 +1,6 @@
 # AliotC
 Rewrite of Aliot library in C++ for Arduino and ESP boards to communicate with alivecode.ca
+[![Check Build](https://github.com/ALIVEcode/aliot-c/actions/workflows/main.yml/badge.svg)](https://github.com/ALIVEcode/aliot-c/actions/workflows/main.yml)
 
 ## Usage
 
