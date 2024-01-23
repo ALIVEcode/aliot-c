@@ -3,6 +3,9 @@
 
 #include <WebSocketsClient.h>
 #include <Arduino.h>
+#include <WiFiClientSecure.h>
+#include <ArduinoHttpClient.h>
+#include <string>
 #include "AliotDict.h"
 #include "AliotTimer.h"
 #include "ConfigDirectives.h"
@@ -15,9 +18,11 @@ struct AliotEvents {
     static inline AliotEvent_t EVT_PING = "ping";
     static inline AliotEvent_t EVT_PONG = "pong";
     static inline AliotEvent_t EVT_UPDATE_DOC = "update_doc";
+    static inline AliotEvent_t EVT_RECEIVE_DOC = "receive_doc";
     static inline AliotEvent_t EVT_SEND_ACTION = "send_action";
     static inline AliotEvent_t EVT_SEND_ACTION_DONE = "send_action_done";
     static inline AliotEvent_t EVT_RECEIVE_ACTION = "receive_action";
+    static inline AliotEvent_t EVT_GET_FIELD = "get_field";
 };
 
 
@@ -27,6 +32,7 @@ typedef struct {
     int port = 8881;
     const char* host = "alivecode.ca";
     const char* path = "/iotgateway/";
+    const char* apiPath = "/api";
 
     const char* ssid;
     const char* password;
@@ -63,6 +69,7 @@ class AliotObject {
         AliotAction _actionMap[MAX_ACTION_COUNT];
     
     public:
+        WiFiClient wifi;
         AliotTimer timer;
 
         AliotObject();
@@ -105,6 +112,8 @@ class AliotObject {
 
         // Return true if updateDoc event was sent successfully
         bool updateDoc(AliotDict_t aliotDict);
+
+        String getDoc(String key);
 
         void handleEvent(AliotEvent_t event, StaticJsonDocument<256> doc);
 

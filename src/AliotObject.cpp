@@ -31,7 +31,7 @@ bool AliotObject::isConnected() {
 void AliotObject::run() {
     if (this->_validConfig) {
         this->setupWiFi();
-        this->setupWebSocket();  
+        this->setupWebSocket(); 
     } else {
         Serial.println("[Error] Invalid configuration. Call setupConfig() before run()");
     }
@@ -131,6 +131,34 @@ bool AliotObject::updateDoc(AliotDict_t aliotDict) {
     if (this->_connected) 
         return this->sendEvent(AliotEvents::EVT_UPDATE_DOC, aliotDict);
     return false;
+}
+
+String AliotObject::getDoc(String key) {
+    String path = String(this->_config.apiPath) + "/iot/aliot/" + AliotEvents::EVT_GET_FIELD;
+    String contentType = "application/json";
+    String postData = "{\"id\": \"" + String(this->_config.objectId) + "\",\"field\":\"" + key + "\"}";
+
+    WiFiClientSecure wifiSecured = WiFiClientSecure();
+
+    wifiSecured.setInsecure(); // NOT RECOMMENDED TODO : add CA certificate
+
+    HttpClient httpClient = HttpClient(wifiSecured, this->_config.host, 443);
+    httpClient.post(path, contentType, postData);
+
+    int status = httpClient.responseStatusCode();
+    String response = httpClient.responseBody();
+
+    if (status == 201)  return response;
+
+    #ifdef ALIOT_DEBUG
+        switch (status) {
+            case 403: Serial.println("While getting the field " + key + ", request was Forbidden due to permission errors or project missing.");
+            case 500: Serial.println("While getting the field " + key + ", something went wrong with the ALIVEcode's servers, please try again.");
+            default : Serial.println("While getting the field " + key + ", please try again. " + response);
+        }
+    #endif
+
+    return "";
 }
 
 bool AliotObject::connectObject() { 
