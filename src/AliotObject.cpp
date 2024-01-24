@@ -148,6 +148,9 @@ String AliotObject::getDoc(String key) {
     int status = httpClient.responseStatusCode();
     String response = httpClient.responseBody();
 
+    httpClient.stop();
+    wifiSecured.stop();
+
     if (status == 201)  return response;
 
     #ifdef ALIOT_DEBUG
