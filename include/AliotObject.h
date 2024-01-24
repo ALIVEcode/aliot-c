@@ -61,6 +61,7 @@ class AliotObject {
         AliotWebSocketConfig _config;
 
         AliotEventCallback _onStartCallback;
+        AliotEventCallback _onReconnectCallback;
         
         // State of Aliot Object
         bool _connected;
@@ -96,6 +97,8 @@ class AliotObject {
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password);
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, const bool modemSleep);
 
+        void setReconnectCallback(AliotEventCallback callback);
+        
         /*
         Call in the Arduino loop() function.
         */

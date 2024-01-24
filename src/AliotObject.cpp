@@ -7,6 +7,7 @@ AliotObject::AliotObject() {
     this->_validConfig = false;
 
     this->_onStartCallback = NULL;
+    this->_onReconnectCallback = NULL;
 
     this->timer = AliotTimer();
 
@@ -56,6 +57,10 @@ void AliotObject::setupConfig(const char* authToken, const char* objectId, const
     this->_config.modemSleep = modemSleep;
 }
 
+void AliotObject::setReconnectCallback(AliotEventCallback callback) {
+    this->_onReconnectCallback = callback;
+}
+
 void AliotObject::setupWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(this->_config.ssid, this->_config.password);
@@ -78,6 +83,17 @@ void AliotObject::setupWebSocket() {
 }
 
 void AliotObject::loop() {
+    // If the WiFi is disconnected, we reconnect
+    if (!WiFi.isConnected()) {
+        Serial.println("WiFi disconnected, reconnecting...");
+
+        WiFi.disconnect();
+
+        this->run();
+
+        if (this->_onReconnectCallback != NULL) this->_onReconnectCallback();
+    }
+    
     this->_client.loop();
 }
 
