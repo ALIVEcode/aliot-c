@@ -66,6 +66,7 @@ void AliotObject::setupWiFi() {
     WiFi.begin(this->_config.ssid, this->_config.password);
     // WiFi.setSleep(this->_config.modemSleep);
 
+    Serial.println("Trying to connect to wifi");
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
