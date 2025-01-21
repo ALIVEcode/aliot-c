@@ -1,8 +1,8 @@
 #include "AliotObject.h"
 
 // Setup wifi credentials
-const char* ssid = "";
-const char* password = "";
+std::vector<std::string> ssid = {};
+std::vector<std::string> password = {};
 
 // Setup aliot credentials
 const char* authToken = "";

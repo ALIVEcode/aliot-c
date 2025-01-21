@@ -43,16 +43,47 @@ void AliotObject::runLocal(const char* IPAdress) {
     this->run();
 }
 
-void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password) {
+void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssidParam, const char* passwordParam) {
     this->_config.authToken = authToken;
     this->_config.objectId = objectId;
-    this->_config.ssid = ssid;
-    this->_config.password = password;
+    std::vector<std::string> ssidVec = {};
+    std::vector<std::string> passwordVec = {};
+
+    ssidVec.push_back(ssidParam);
+    passwordVec.push_back(passwordParam);
+
+    this->_config.ssid.clear();
+    this->_config.password.clear();
+    for (const auto& s : ssidVec) {
+        this->_config.ssid.push_back(String(s.c_str()));
+    }
+    for (const auto& p : passwordVec) {
+        this->_config.password.push_back(String(p.c_str()));
+    }
+    this->_validConfig = true;
+}
+
+void AliotObject::setupConfig(const char* authToken, const char* objectId, const std::vector<std::string>& ssid, const std::vector<std::string>& password) {
+    this->_config.authToken = authToken;
+    this->_config.objectId = objectId;
+    this->_config.ssid.clear();
+    this->_config.password.clear();
+    for (const auto& s : ssid) {
+        this->_config.ssid.push_back(String(s.c_str()));
+    }
+    for (const auto& p : password) {
+        this->_config.password.push_back(String(p.c_str()));
+    }
 
     this->_validConfig = true;
 }
 
 void AliotObject::setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, const bool modemSleep) {
+    setupConfig(authToken, objectId, ssid, password);
+    this->_config.modemSleep = modemSleep;
+}
+
+void AliotObject::setupConfig(const char* authToken, const char* objectId, const std::vector<std::string>& ssid, const std::vector<std::string>& password, const bool modemSleep) {
     setupConfig(authToken, objectId, ssid, password);
     this->_config.modemSleep = modemSleep;
 }
@@ -63,15 +94,45 @@ void AliotObject::setReconnectCallback(AliotEventCallback callback) {
 
 void AliotObject::setupWiFi() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(this->_config.ssid, this->_config.password);
-    // WiFi.setSleep(this->_config.modemSleep);
+    int counter = 0;
+    int retryCounter = 0;
+    bool flag = false;
+    if (_config.ssid.size() == _config.password.size()) {
+        for (int i = 0; i < _config.ssid.size(); i++) {
+            while(retryCounter <= 40) {
+                const String& ssid = _config.ssid[i];
+                const String& password = _config.password[i];
+                WiFi.begin(ssid, password);
+                // WiFi.setSleep(this->_config.modemSleep);
 
-    Serial.println("Trying to connect to wifi");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+                while (WiFi.status() != WL_CONNECTED && counter <= 1) {            
+                    delay(500);
+                    Serial.print(".");
+                    counter++;
+                }
+                Serial.println(ssid);
+                if (WiFi.status() == WL_CONNECTED) {
+                    Serial.println("WiFi connected");
+                    flag = true;
+                    break;
+                } else {
+                    Serial.println("Trying next wifi");
+                }
+                counter = 0;
+                retryCounter++;
+            }
+            if (flag) {
+                break;
+            }
+            retryCounter = 0;
+        }
+    } else {
+        Serial.println("Number of SSID and Number of Password doesn't match");
     }
-    Serial.println("WiFi connected");
+    if (!flag) {
+        Serial.println("Restarting the ESP32");
+        ESP.restart();
+    }
 }
 
 // TODO: Switch to secure connection 

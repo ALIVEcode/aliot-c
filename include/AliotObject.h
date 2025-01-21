@@ -9,6 +9,7 @@
 #include "AliotDict.h"
 #include "AliotTimer.h"
 #include "ConfigDirectives.h"
+#include "vector"
 
 typedef const char* AliotEvent_t;
 struct AliotEvents {
@@ -34,8 +35,8 @@ typedef struct {
     const char* path = "/iotgateway/";
     const char* apiPath = "/api";
 
-    const char* ssid;
-    const char* password;
+    std::vector<String> ssid;
+    std::vector<String> password;
 
     const char* authToken;
     const char* objectId;
@@ -96,6 +97,9 @@ class AliotObject {
         // Temporary configuration system
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password);
         void setupConfig(const char* authToken, const char* objectId, const char* ssid, const char* password, const bool modemSleep);
+
+        void setupConfig(const char* authToken, const char* objectId, const std::vector<std::string>& ssid, const std::vector<std::string>& password);
+        void setupConfig(const char* authToken, const char* objectId, const std::vector<std::string>& ssid, const std::vector<std::string>& password, const bool modemSleep);
 
         void setReconnectCallback(AliotEventCallback callback);
         
