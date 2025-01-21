@@ -95,42 +95,39 @@ void AliotObject::setReconnectCallback(AliotEventCallback callback) {
 void AliotObject::setupWiFi() {
     WiFi.mode(WIFI_STA);
     int counter = 0;
-    int retryCounter = 0;
-    bool flag = false;
+    bool connected = false;
     if (_config.ssid.size() == _config.password.size()) {
         for (int i = 0; i < _config.ssid.size(); i++) {
-            while(retryCounter <= 40) {
-                const String& ssid = _config.ssid[i];
-                const String& password = _config.password[i];
-                WiFi.begin(ssid, password);
-                // WiFi.setSleep(this->_config.modemSleep);
+            const char* ssid = _config.ssid[i].c_str();
+            const char* password = _config.password[i].c_str();
 
-                while (WiFi.status() != WL_CONNECTED && counter <= 1) {            
-                    delay(500);
-                    Serial.print(".");
-                    counter++;
-                }
-                Serial.println(ssid);
-                if (WiFi.status() == WL_CONNECTED) {
-                    Serial.println("WiFi connected");
-                    flag = true;
-                    break;
-                } else {
-                    Serial.println("Trying next wifi");
-                }
-                counter = 0;
-                retryCounter++;
+            if (password == "" || password == NULL) {
+                WiFi.begin(ssid);
+            } else {
+                WiFi.begin(ssid, password);
             }
-            if (flag) {
+            // WiFi.setSleep(this->_config.modemSleep);
+
+            while (WiFi.status() != WL_CONNECTED && counter <= 60) {            
+                delay(500);
+                Serial.print(".");
+                counter++;
+            }
+            if (WiFi.status() == WL_CONNECTED) {
+                Serial.println("WiFi connected");
+                connected = true;
                 break;
+            } else {
+                Serial.println("Trying next wifi");
             }
-            retryCounter = 0;
+            counter = 0;
         }
     } else {
-        Serial.println("Number of SSID and Number of Password doesn't match");
+        Serial.println("The number of SSID and the number of Password doesn't match");
     }
-    if (!flag) {
-        Serial.println("Restarting the ESP32");
+    if (!connected) {
+        Serial.println("Failed to connect to Wi-Fi. Retrying in 10 seconds...");
+        delay(10000);
         ESP.restart();
     }
 }
